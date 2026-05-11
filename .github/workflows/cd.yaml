@@ -1,0 +1,23 @@
+name: CD - minimal deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Deploy to server (copy files)
+        run: |
+          set -e
+          echo "Starting deployment..."
+          mkdir -p ~/app/devops-ci-cd
+          rsync -av --delete . ~/app/devops-ci-cd/
+          echo "Deployment finished."
+
