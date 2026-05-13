@@ -1,4 +1,4 @@
-name: CD - minimal deployment
+name: CD - atomic deployment
 
 on:
   push:
@@ -8,16 +8,31 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Deploy to server (copy files)
+      - name: Atomic deploy
         run: |
           set -e
-          echo "Starting deployment..."
-          mkdir -p ~/app/devops-ci-cd
-          rsync -av --delete . ~/app/devops-ci-cd/
-          echo "Deployment finished."
+          echo "Starting atomic deployment..."
+
+          APP_DIR=/var/www/devops-app
+          RELEASES_DIR=$APP_DIR/releases
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          NEW_RELEASE=$RELEASES_DIR/$TIMESTAMP
+
+          mkdir -p $RELEASES_DIR
+          mkdir -p $NEW_RELEASE
+
+          rsync -av --delete $GITHUB_WORKSPACE/ $NEW_RELEASE/
+
+          ln -sfn $NEW_RELEASE $APP_DIR/current
+
+          echo "Deployment finished. Current release: $NEW_RELEASE"
+
+      - name: Restart service
+        run: |
+          sudo systemctl restart devops-app
+          echo "Service restarted."
 
